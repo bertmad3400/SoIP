@@ -48,8 +48,7 @@ class Server:
                 out_packet = Packet(PacketType.HANDSHAKE, dict(SoundOptions))
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.HEARTBEAT:
-                out_packet = Packet(PacketType.HEARTBEAT, None)
-                socket.sendto(out_packet.serialize(), client_address)
+                pass # No need to do anything.
             case PacketType.STATUS:
                 status = {
                     'connected_users': [c.display_name for c in clients]
