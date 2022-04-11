@@ -1,4 +1,5 @@
 from common.packet import PacketType, Packet
+from common.options import ProtocolOptions
 
 import sounddevice as sd
 import numpy as np
@@ -107,10 +108,27 @@ class Client:
             await event.wait()
 
 async def send_packets(client):
-    pass
+    while True:
+        if client.muted:
+            if (last_sent_time - datetime.now()) / timedelta(milliseconds=1) > 1000:
+                client.send_packet(Packet(PacketType.HEARTBEAT, None))
+        else:
+            await client.record_buffer()
+            client.send_pack(Packet(PacketType.SOUND, client.buffer))
 
 async def recieve_packets(client):
-    pass
+    while True:
+        if (last_recieved_time - datetime.now()) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
+            raise Timeout
+
+        packet = client.recieve_packet()
+
+        if packet:
+            match packet.packet_type:
+                case PacketType.STATUS:
+                    client.connected_users = packet.body["connected_users"]
+                case PacketType.DISCONNECT:
+                    raise Disconnect(packet.body["disconnect_reason"])
 
 async def main():
     client = Client("127.0.0.1", 3333)
