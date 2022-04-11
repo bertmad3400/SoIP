@@ -6,9 +6,16 @@ import asyncio
 
 import logging
 
+import sys
 import socket
 
 from time import sleep
+
+class Disconnect(Exception):
+    pass
+
+class Timeout(Exception):
+    pass
 
 class Client:
     def __init__(self, server_ip, server_port):
@@ -121,3 +128,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         sys.exit('\nInterrupted by user')
+    except Disconnect as reason:
+        sys.exit(f"\nServer disconnected. Reason: {reason}")
+    except Timeout:
+        sys.exit("\nConnection to server timed out.")
