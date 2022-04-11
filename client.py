@@ -77,7 +77,7 @@ class Client:
             await event.wait()
 
 
-    async def _play_sound(self, sound):
+    async def play_sound(self, sound):
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         i = 0
