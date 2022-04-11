@@ -53,7 +53,7 @@ class Server:
                 status = {
                     'connected_users': [c.display_name for c in clients]
                 }
-                out_packet = Packet(PacketType.HEARTBEAT, status)
+                out_packet = Packet(PacketType.STATUS, status)
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.SOUND:
                 raise NotImplemented("TODO")
