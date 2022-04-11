@@ -36,13 +36,14 @@ class Body():
 
 class Packet():
     PROTOCOL_MAGIC_NUMBER = 0x69
-    def __init__(self, packet_type, body):
+    def __init__(self, packet_type, body, packet_id=None):
         self.magic_number = Packet.PROTOCOL_MAGIC_NUMBER
         self.packet_type = packet_type
         #self.checksum = checksum
         if isinstance(body, Body):
             self.body = body
         else:
+            body = {"id" : packet_id, sound_data: body}
             self.body = Body(body, packet_type)
 
     # Serialize into datagram body
