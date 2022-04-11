@@ -8,6 +8,8 @@ import logging
 
 import socket
 
+from time import sleep
+
 class Client:
     def __init__(self, server_ip, server_port):
 
@@ -78,3 +80,31 @@ class Client:
 
         with stream:
             await event.wait()
+
+async def send_packets(client):
+    pass
+
+async def recieve_packets(client):
+    pass
+
+async def main():
+    client = Client("127.0.0.1", 3333)
+
+    while True:
+        try:
+            client.handshake()
+        except Exception as e:
+            logging.error(f'Encountered following error when attempting handshake: "{e}". Trying again')
+            sleep(1)
+
+    recieve_packets_task = asyncio.create_task(recieve_packets(client))
+    send_packets_task = asyncio.create_task(send_packets(client))
+
+    await recieve_packets_task
+    await send_packets_task
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        sys.exit('\nInterrupted by user')
