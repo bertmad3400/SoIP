@@ -23,7 +23,7 @@ class Client:
         self.server_address = (server_ip, server_port)
         self.sock = socket.socket(type=socket.SOCK_DGRAM)
 
-        self.connected_users = {}
+        self.connected_users = []
         self.display_name = display_name
 
         self.buffer = np.empty((150_000, 2), dtype="float32")
