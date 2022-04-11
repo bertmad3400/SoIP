@@ -16,21 +16,21 @@ Clientbound:
 
 - **Magic number**: 8 bit
 - **Packet type**: 8 bit
-- **CRC checksum**: 32bit
-- **Body length**: 32bit
+- **Body length**: 16bit
 
 ### Handshake - 0x00:
 In BSON format.
 
 #### Client:
 **Contains**:
-- Display name
+- Display name: "display_name"
 
 #### Server:
 **Contains**:
-- Sample rate
-- Channels
-- Word type
+- Sample rate: "sample_rate"
+- Channels: "channels"
+- Word type: "word_type"
+- Buffer size: "buffer_size"
 
 ### Sound - 0x01
 Raw format
@@ -42,12 +42,12 @@ Raw format
 In BSON format
 
 **Contains**:
-- List of display names
+- List of display names: "connected_users"
 
+### Disconnect - 0x03:
+**Contains**
+- Reason for disconnect: "disconnect_reason"
 
-### Heart beat - 0xfe:
-**Empty**
-
-### Disconnect - 0xff:
+### Heart beat - 0xff:
 **Empty**
 
