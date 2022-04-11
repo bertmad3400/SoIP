@@ -8,6 +8,8 @@ import logging
 
 import socket
 
+from time import sleep
+
 class Client:
     def __init__(self, server_ip, server_port):
 
@@ -15,6 +17,7 @@ class Client:
         self.sock = socket.socket(type=socket.SOCK_DGRAM)
 
         self.connected_users = {}
+        self.buffer = np.empty((150_000, 2), dtype="float32")
 
     def handshake(self):
         handshake = packet.Packet()
@@ -54,7 +57,7 @@ class Client:
             await event.wait()
 
 
-    async def _play_buffer(self):
+    async def _play_sound(self, sound):
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         i = 0
@@ -63,17 +66,45 @@ class Client:
             nonlocal i
             if status:
                 logging.info(status)
-            remainder = len(self.buffer) - i
+            remainder = len(sound) - i
             if remainder == 0:
                 loop.call_soon_threadsafe(event.set)
                 raise sd.CallbackStop
 
             valid_frames = frame_count if remainder >= frame_count else remainder
-            outdata[:valid_frames] = self.buffer[i:i + valid_frames]
+            outdata[:valid_frames] = sound[i:i + valid_frames]
             outdata[valid_frames:] = 0
             i += valid_frames
 
-        stream = sd.OutputStream(callback=callback, dtype=self.buffer.dtype, channels=self.buffer.shape[1])
+        stream = sd.OutputStream(callback=callback, dtype=sound.dtype, channels=sound.shape[1])
 
         with stream:
             await event.wait()
+
+async def send_packets(client):
+    pass
+
+async def recieve_packets(client):
+    pass
+
+async def main():
+    client = Client("127.0.0.1", 3333)
+
+    while True:
+        try:
+            client.handshake()
+        except Exception as e:
+            logging.error(f'Encountered following error when attempting handshake: "{e}". Trying again')
+            sleep(1)
+
+    recieve_packets_task = asyncio.create_task(recieve_packets(client))
+    send_packets_task = asyncio.create_task(send_packets(client))
+
+    await recieve_packets_task
+    await send_packets_task
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        sys.exit('\nInterrupted by user')
