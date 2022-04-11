@@ -34,6 +34,7 @@ class Client:
         self.muted = False
         self.last_sent_time = datetime.now()
         self.last_recieved_time = datetime.now()
+        self.packet_id = 0
 
     def handshake(self):
         self.send_packet(Packet(PacketType.HANDSHAKE, {"display_name" : self.display_name}))
@@ -116,7 +117,8 @@ async def send_packets(client):
                 client.send_packet(Packet(PacketType.HEARTBEAT, None))
         else:
             await client.record_buffer()
-            client.send_pack(Packet(PacketType.SOUND, client.buffer))
+            client.packet_id += 1
+            client.send_pack(Packet(PacketType.SOUND, client.buffer, packet_id=client.packet_id))
 
 async def recieve_packets(client):
     while True:
@@ -132,12 +134,12 @@ async def recieve_packets(client):
                 case PacketType.DISCONNECT:
                     raise Disconnect(packet.body["disconnect_reason"])
                 case PacketType.SOUND:
-                    sound_queue.put_nowait(packet.body)
+                    sound_queue.put_nowait((packet.body["id"], packet.body["sound_data"]))
 
 async def play_sound_queue(client, sound_queue):
     while True:
         if not sound_queue.empty():
-            client.play_sound(sound_queue.get_nowait())
+            client.play_sound(sound_queue.get_nowait()[1])
 
 
 async def main():
