@@ -2,9 +2,8 @@ import sounddevice as sd
 import numpy as np
 from socketserver import DatagramRequestHandler, UDPServer
 from datetime import datetime, timezone
-import bson
 
-from options import SoundOptions
+from server.options import SoundOptions
 from common.packet import Packet, PacketType
 from common.options import ProtocolOptions
 
@@ -49,20 +48,20 @@ class Server:
                 out_packet = Packet(PacketType.HANDSHAKE, dict(SoundOptions))
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.HEARTBEAT:
-                out_packet = Packet(PacketType.HEARTBEAT, None))
+                out_packet = Packet(PacketType.HEARTBEAT, None)
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.STATUS:
                 status = {
                     'connected_users': [c.display_name for c in clients]
                 }
-                out_packet = Packet(PacketType.HEARTBEAT, status))
+                out_packet = Packet(PacketType.HEARTBEAT, status)
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.SOUND:
                 raise NotImplemented("TODO")
-                out_packet = Packet(PacketType.SOUND, None))
+                out_packet = Packet(PacketType.SOUND, None)
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.DISCONNECT:
-                out_packet = Packet(PacketType.DISCONNECT, None))
+                out_packet = Packet(PacketType.DISCONNECT, None)
                 socket.sendto(out_packet.serialize(), client_address)
         client.update_last_packet()
 
