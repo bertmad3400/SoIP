@@ -136,6 +136,7 @@ async def main():
     while True:
         try:
             client.handshake()
+            break
         except Exception as e:
             logging.error(f'Encountered following error when attempting handshake: "{e}". Trying again')
             sleep(1)
