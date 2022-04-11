@@ -1,0 +1,8 @@
+Client - Server struktur
+
+Formål: At lade en række mennesker kan snakke sammen (flere end to). Filterere og merge streams serverside. Der benyttes encoding for lyd.
+
+
+- GUI
+- Server og client
+- Lyd-optagelse
