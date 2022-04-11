@@ -55,7 +55,7 @@ class Client:
             await event.wait()
 
 
-    async def _play_buffer(self):
+    async def _play_sound(self, sound):
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         i = 0
@@ -64,17 +64,17 @@ class Client:
             nonlocal i
             if status:
                 logging.info(status)
-            remainder = len(self.buffer) - i
+            remainder = len(sound) - i
             if remainder == 0:
                 loop.call_soon_threadsafe(event.set)
                 raise sd.CallbackStop
 
             valid_frames = frame_count if remainder >= frame_count else remainder
-            outdata[:valid_frames] = self.buffer[i:i + valid_frames]
+            outdata[:valid_frames] = sound[i:i + valid_frames]
             outdata[valid_frames:] = 0
             i += valid_frames
 
-        stream = sd.OutputStream(callback=callback, dtype=self.buffer.dtype, channels=self.buffer.shape[1])
+        stream = sd.OutputStream(callback=callback, dtype=sound.dtype, channels=sound.shape[1])
 
         with stream:
             await event.wait()
