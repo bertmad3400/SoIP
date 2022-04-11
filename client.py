@@ -13,6 +13,8 @@ import socket
 from time import sleep
 from datetime import datetime, timedelta
 
+from queue import Queue
+
 class Disconnect(Exception):
     pass
 
@@ -129,6 +131,14 @@ async def recieve_packets(client):
                     client.connected_users = packet.body["connected_users"]
                 case PacketType.DISCONNECT:
                     raise Disconnect(packet.body["disconnect_reason"])
+                case PacketType.SOUND:
+                    sound_queue.put_nowait(packet.body)
+
+async def play_sound_queue(client, sound_queue):
+    while True:
+        if not sound_queue.empty():
+            client.play_sound(sound_queue.get_nowait())
+
 
 async def main():
     client = Client("127.0.0.1", 3333)
@@ -141,11 +151,15 @@ async def main():
             logging.error(f'Encountered following error when attempting handshake: "{e}". Trying again')
             sleep(1)
 
-    recieve_packets_task = asyncio.create_task(recieve_packets(client))
+    sound_queue = Queue()
+
     send_packets_task = asyncio.create_task(send_packets(client))
+    recieve_packets_task = asyncio.create_task(recieve_packets(client, sound_queue))
+    play_sound_task = asyncio.create_task(play_sound_queue(client, sound_queue))
 
     await recieve_packets_task
     await send_packets_task
+    await play_sound_task
 
 if __name__ == "__main__":
     try:
