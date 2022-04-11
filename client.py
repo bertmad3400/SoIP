@@ -20,10 +20,12 @@ class Client:
         self.buffer = np.empty((150_000, 2), dtype="float32")
 
     def handshake(self):
-        handshake = packet.Packet()
-        self.sock.sendto(handshake.serialize(), self.server_address)
 
-        handshake = packet.unserialize(sock.recv(65536))
+        self.send_packet(packet.Packet())
+
+        sleep(1)
+
+        handshake = self.recieve_packet()
 
         self.SAMPLE_RATE = handshake.body["sample_rate"]
         self.CHANNELS = handshake.body["channels"]
@@ -32,7 +34,18 @@ class Client:
 
         self.buffer = np.empty((self.BUFFER_SIZE, self.CHANNELS), dtype=self.WORD_TYPE)
 
-    async def _record_buffer(self):
+    def send_packet(packet):
+        self.last_sent_time = datetime.now()
+        self.sock.sendto(packet.seralize(), self.server_address)
+
+    def recieve_packet():
+        raw_data = sock.recv(65536)
+
+        if raw_data:
+            last_recieved_time = datetime.time()
+            return Packet.unserialize(raw_data)
+
+    async def record_buffer(self):
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         i = 0
