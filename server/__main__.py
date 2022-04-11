@@ -1,18 +1,21 @@
 import sounddevice as sd
 import numpy as np
-from socketserver import DatagramRequestHandler, UDPServer
+from socketserver import DatagramRequestHandler, ThreadingUDPServer
 from datetime import datetime, timezone
-import bson
+from queue import Queue
+import asyncio
 
-from options import SoundOptions
+from server.options import SoundOptions
 from common.packet import Packet, PacketType
 from common.options import ProtocolOptions
 
 class ConnectedClient:
-    def __init__(self, display_name):
+    def __init__(self, display_name, socket, address):
         self.display_name = display_name
         self.last_packet = datetime.now(timezone.utc)
-
+        self.audio_parts = Queue()
+        self.socket = socket
+        self.address = address
 
     def update_last_packet(last_packet=None):
         if last_packet == None:
@@ -44,32 +47,39 @@ class Server:
         match in_packet.packet_type:
             case PacketType.HANDSHAKE:
                 if not client:
-                    client = ConnectedClient(in_packet.body['display_name'])
+                    client = ConnectedClient(in_packet.body['display_name'], socket, client_address)
                     clients[client_address] = client
                 out_packet = Packet(PacketType.HANDSHAKE, dict(SoundOptions))
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.HEARTBEAT:
-                out_packet = Packet(PacketType.HEARTBEAT, None))
-                socket.sendto(out_packet.serialize(), client_address)
+                pass # No need to do anything.
             case PacketType.STATUS:
                 status = {
                     'connected_users': [c.display_name for c in clients]
                 }
-                out_packet = Packet(PacketType.HEARTBEAT, status))
+                out_packet = Packet(PacketType.STATUS, status)
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.SOUND:
-                raise NotImplemented("TODO")
-                out_packet = Packet(PacketType.SOUND, None))
-                socket.sendto(out_packet.serialize(), client_address)
+                client.audio_parts.put(in_packet.body.content)
             case PacketType.DISCONNECT:
-                out_packet = Packet(PacketType.DISCONNECT, None))
+                out_packet = Packet(PacketType.DISCONNECT, None)
                 socket.sendto(out_packet.serialize(), client_address)
         client.update_last_packet()
 
-    def listen(self):
-        with UDPServer(self.listen_address, self.request_handler) as server:
+    async def process_audio(self):
+        while True:
+            for client in self.clients:
+                audio_part = client.audio_parts.get()
+                for other_client in clients:
+                    if client == other_client: continue
+                    client.socker.sendto(Packet(PacketType.SOUND, audio_part).serialize(), client.add)
+
+    async def listen(self):
+        with ThreadingUDPServer(self.listen_address, self.request_handler) as server:
+            audio_task = asyncio.create_task(self.process_audio())
             server.serve_forever()
+            await audio_task
 
 if __name__ == "__main__":
     server = Server(('127.0.0.1', 3333))
-    server.listen()
+    asyncio.run(server.listen())
