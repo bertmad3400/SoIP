@@ -15,6 +15,7 @@ class Client:
         self.sock = socket.socket(type=socket.SOCK_DGRAM)
 
         self.connected_users = {}
+        self.buffer = np.empty((150_000, 2), dtype="float32")
 
     def handshake(self):
         handshake = packet.Packet()
