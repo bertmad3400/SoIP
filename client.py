@@ -6,12 +6,15 @@ import asyncio
 
 import logging
 
+import socket
+
 class Client:
-    def __init__(self):
+    def __init__(self, server_ip, server_port):
 
-        self.options = options.SoundOptions
+        self.server_address = (server_ip, server_port)
+        self.sock = socket.socket(type=socket.SOCK_DGRAM)
 
-        self.buffer = np.empty((self.options.BUFFER_SIZE, self.options.CHANNELS), dtype=self.options.WORD_TYPE)
+        self.connected_users = {}
 
     async def _record_buffer(self):
         loop = asyncio.get_event_loop()
