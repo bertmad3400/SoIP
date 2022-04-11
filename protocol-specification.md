@@ -36,7 +36,8 @@ In BSON format.
 Raw format
 
 **Contains**:
-- Sound data
+- ID: "id" (32 bit)
+- Sound data: "sound_data"
 
 ### Status - 0x02:
 In BSON format

@@ -28,19 +28,22 @@ class Body():
         if packet_type in {PacketType.HANDSHAKE, PacketType.STATUS, PacketType.DISCONNECT}:
             return Body(bson.loads(raw_content), packet_type)
         elif packet_type == PacketType.SOUND:
-            return Body(raw_content, packet_type)
+            body_dict = { "id" : int.from_bytes(raw_content[:4], byteorder="little"),
+                          "sound_data": np.load(BytesIO(raw_content[4:]), allow_pickle=True) }
+            return Body(body_dict, packet_type)
         else:
             return None
 
 class Packet():
     PROTOCOL_MAGIC_NUMBER = 0x69
-    def __init__(self, packet_type, body):
+    def __init__(self, packet_type, body, packet_id=None):
         self.magic_number = Packet.PROTOCOL_MAGIC_NUMBER
         self.packet_type = packet_type
         #self.checksum = checksum
         if isinstance(body, Body):
             self.body = body
         else:
+            body = {"id" : packet_id, sound_data: body}
             self.body = Body(body, packet_type)
 
     # Serialize into datagram body
