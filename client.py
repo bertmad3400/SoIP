@@ -1,4 +1,4 @@
-from common import *
+from common.packet import PacketType, Packet
 
 import sounddevice as sd
 import numpy as np
@@ -33,8 +33,7 @@ class Client:
         self.last_recieved_time = datetime.now()
 
     def handshake(self):
-
-        self.send_packet(packet.Packet())
+        self.send_packet(Packet(PacketType.HANDSHAKE, {"display_name" : self.display_name}))
 
         sleep(1)
 
