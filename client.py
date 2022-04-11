@@ -16,6 +16,19 @@ class Client:
 
         self.connected_users = {}
 
+    def handshake(self):
+        handshake = packet.Packet()
+        self.sock.sendto(handshake.serialize(), self.server_address)
+
+        handshake = packet.unserialize(sock.recv(65536))
+
+        self.SAMPLE_RATE = handshake.body["sample_rate"]
+        self.CHANNELS = handshake.body["channels"]
+        self.WORD_TYPE = handshake.body["word_type"]
+        self.BUFFER_SIZE = handshake.body["buffer_size"]
+
+        self.buffer = np.empty((self.BUFFER_SIZE, self.CHANNELS), dtype=self.WORD_TYPE)
+
     async def _record_buffer(self):
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
