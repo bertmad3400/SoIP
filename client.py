@@ -10,6 +10,7 @@ import sys
 import socket
 
 from time import sleep
+from datetime import datetime, timedelta
 
 class Disconnect(Exception):
     pass
@@ -27,6 +28,9 @@ class Client:
         self.display_name = display_name
 
         self.buffer = np.empty((150_000, 2), dtype="float32")
+        self.muted = False
+        self.last_sent_time = datetime.now()
+        self.last_recieved_time = datetime.now()
 
     def handshake(self):
 
