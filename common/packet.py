@@ -28,7 +28,9 @@ class Body():
         if packet_type in {PacketType.HANDSHAKE, PacketType.STATUS, PacketType.DISCONNECT}:
             return Body(bson.loads(raw_content), packet_type)
         elif packet_type == PacketType.SOUND:
-            return Body(raw_content, packet_type)
+            body_dict = { "id" : int.from_bytes(raw_content[:4], byteorder="little"),
+                          "sound_data": np.load(BytesIO(raw_content[4:]), allow_pickle=True) }
+            return Body(body_dict, packet_type)
         else:
             return None
 
