@@ -20,7 +20,7 @@ class ConnectedClient:
         self.audio_parts = PriorityQueue()
         self.socket = socket
         self.address = address
-        self.packet_counts = 0
+        self.packet_count = 0
 
     def update_last_packet(self, last_packet=None):
         if last_packet == None:
