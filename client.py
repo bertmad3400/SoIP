@@ -76,6 +76,11 @@ class Client:
     def recieve_packet(self):
         try:
             raw_data = bytearray(self.sock.recv(65536, socket.MSG_DONTWAIT))
+
+            if len(raw_data) == 0:
+                return None
+
+            logging.debug(f"Recieved packet of size {len(raw_data)} bytes")
             last_recieved_time = datetime.now()
             packet = Packet.deserialize(raw_data)
             logging.debug(f"Recieved packet of type {packet.packet_type.name}")
