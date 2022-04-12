@@ -155,6 +155,7 @@ def recieve_packets(client, sound_queue):
             match packet.packet_type:
                 case PacketType.STATUS:
                     client.connected_users = packet.body.content["connected_users"]
+                    logging.info("Updated connected-user-list. Currently looks like:\n" + " --- ".join(client.connected_users))
                 case PacketType.DISCONNECT:
                     raise Disconnect(packet.body.content["disconnect_reason"])
                 case PacketType.SOUND:
