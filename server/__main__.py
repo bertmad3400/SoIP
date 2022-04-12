@@ -4,6 +4,7 @@ from socketserver import DatagramRequestHandler, ThreadingUDPServer
 from datetime import datetime, timezone
 from queue import Queue
 import asyncio
+import threading
 import logging
 
 from server.options import SoundOptions
@@ -51,6 +52,7 @@ class Server:
                     logging.info(f"New user with display name: {in_packet.body.content['display_name']}")
                     client = ConnectedClient(in_packet.body.content['display_name'], socket, client_address)
                     self.clients[client_address] = client
+                logging.info(client)
                 print(SoundOptions)
                 self.send_packet(client, Packet(PacketType.HANDSHAKE, SoundOptions.as_dict()))
             case PacketType.HEARTBEAT:
@@ -69,6 +71,7 @@ class Server:
     def process_audio(self):
         while True:
             for client in self.clients:
+                logging.info(f"Audio part count: {client.audio_parts}")
                 audio_part = client.audio_parts.get_nowait()
                 if audio_part:
                     logging.info(f"Processing audio for {client.display_name} at {client.address}")
@@ -80,14 +83,18 @@ class Server:
         with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
             server.serve_forever()
 
-    async def run(self):
-        await asyncio.gather(
-            asyncio.to_thread(self.process_audio),
-            asyncio.to_thread(self.listen)
-        )
+    def run(self):
+        threads = [
+                threading.Thread(target=self.listen, daemon=True),
+                threading.Thread(target=self.process_audio, daemon=True)
+            ]
+        for thread in threads:
+            thread.start()
+
+        for thread in threads: thread.join()
 
 
 if __name__ == "__main__":
     configure_logging()
     server = Server(('127.0.0.1', 3333))
-    asyncio.run(server.run())
+    server.run()
