@@ -81,7 +81,7 @@ class Server:
                     logging.info(f"Processing audio for {client.display_name} at {client.address}")
                     for other_client in self.clients:
                         if client == other_client: continue
-                        client.socket.sendto(Packet(PacketType.SOUND, audio_part).serialize(), client.add)
+                        client.socket.sendto(Packet(PacketType.SOUND, { "id" : 0, "sound_data": audio_part }).serialize(), client.add)
 
     def listen(self):
         with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
