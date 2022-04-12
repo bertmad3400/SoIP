@@ -21,6 +21,9 @@ class Disconnect(Exception):
 class Timeout(Exception):
     pass
 
+class WrongPacket(Exception):
+    pass
+
 class Client:
     def __init__(self, server_ip, server_port, display_name):
 
