@@ -40,12 +40,14 @@ class Server:
         self.listen_address = listen_address
 
         self.clients = {}
+        self.client_lock = threading.Lock()
 
     def send_packet(self, client: ConnectedClient, packet: Packet):
         logging.info(f"Sending packet ({packet.packet_type}) to {client.address}")
         client.socket.sendto(packet.serialize(), client.address)
 
     def handle_packet(self, in_packet, socket, client_address):
+        self.client_lock.acquire()
         client = self.clients.get(client_address)
         logging.info(f"Handling packet with type {in_packet.packet_type} from client {client_address}.")
         match in_packet.packet_type:
@@ -70,9 +72,11 @@ class Server:
             case PacketType.DISCONNECT:
                 self.send_packet_to(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
+        self.client_lock.release()
 
     def process_audio(self):
         while True:
+            self.client_lock.acquire()
             for client_address in self.clients:
                 client = self.clients[client_address]
                 logging.info(f"Audio part count: {client.audio_parts.qsize()}")
@@ -82,6 +86,7 @@ class Server:
                     for other_client in self.clients:
                         if client == other_client: continue
                         client.socket.sendto(Packet(PacketType.SOUND, { "id" : 0, "sound_data": audio_part }).serialize(), client.add)
+            self.client_lock.release()
 
     def listen(self):
         with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
