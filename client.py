@@ -3,6 +3,7 @@ from common.options import ProtocolOptions, configure_logging
 
 import sounddevice as sd
 import numpy as np
+import threading
 import asyncio
 
 import json
@@ -83,8 +84,6 @@ class Client:
 
     async def record_buffer(self):
         logging.debug("Recording to buffer...")
-        loop = asyncio.get_event_loop()
-        event = asyncio.Event()
         i = 0
 
         def callback(indata, frame_count, time_info, status):
@@ -94,7 +93,6 @@ class Client:
 
             remainder = len(self.buffer) - i
             if remainder == 0:
-                loop.call_soon_threadsafe(event.set)
                 raise sd.CallbackStop
 
             indata = indata[:remainder]
@@ -104,14 +102,11 @@ class Client:
         stream = sd.InputStream(callback=callback, dtype=self.buffer.dtype, channels=self.buffer.shape[1])
 
         with stream:
-            await event.wait()
             logging.debug("Finished recording to buffer.")
 
 
     async def play_sound(self, sound):
         logging.debug("Playing sound...")
-        loop = asyncio.get_event_loop()
-        event = asyncio.Event()
         i = 0
 
         def callback(outdata, frame_count, time_info, status):
@@ -120,7 +115,6 @@ class Client:
                 logging.info(status)
             remainder = len(sound) - i
             if remainder == 0:
-                loop.call_soon_threadsafe(event.set)
                 raise sd.CallbackStop
 
             valid_frames = frame_count if remainder >= frame_count else remainder
@@ -131,20 +125,19 @@ class Client:
         stream = sd.OutputStream(callback=callback, dtype=sound.dtype, channels=sound.shape[1])
 
         with stream:
-            await event.wait()
             logging.debug("Finished playing sound.")
 
-async def send_packets(client):
+def send_packets(client):
     while True:
         if client.muted:
             if (last_sent_time - datetime.now()) / timedelta(milliseconds=1) > 1000:
                 client.send_packet(Packet(PacketType.HEARTBEAT, None))
         else:
-            await client.record_buffer()
+            client.record_buffer()
             client.packet_id += 1
             client.send_packet(Packet(PacketType.SOUND, client.buffer, packet_id=client.packet_id))
 
-async def recieve_packets(client, sound_queue):
+def recieve_packets(client, sound_queue):
     while True:
         if (datetime.now() - client.last_recieved_time) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
             raise Timeout
@@ -152,6 +145,7 @@ async def recieve_packets(client, sound_queue):
         packet = client.recieve_packet()
 
         if packet:
+            logging.info("Recived package")
             match packet.packet_type:
                 case PacketType.STATUS:
                     client.connected_users = packet.body.content["connected_users"]
@@ -160,13 +154,14 @@ async def recieve_packets(client, sound_queue):
                 case PacketType.SOUND:
                     sound_queue.put_nowait((packet.body.content["id"], packet.body.content["sound_data"]))
 
-async def play_sound_queue(client, sound_queue):
+def play_sound_queue(client, sound_queue):
     while True:
         if not sound_queue.empty():
+            logging.info("Playing new sound.")
             client.play_sound(sound_queue.get_nowait()[1])
 
 
-async def main():
+def main():
     client = Client("127.0.0.1", 3333, "Hest")
     logging.info("Created client.")
 
@@ -174,13 +169,17 @@ async def main():
 
     sound_queue = Queue()
 
-    send_packets_task = asyncio.create_task(send_packets(client))
-    recieve_packets_task = asyncio.create_task(recieve_packets(client, sound_queue))
-    play_sound_task = asyncio.create_task(play_sound_queue(client, sound_queue))
+    threads = {}
 
-    await recieve_packets_task
-    await send_packets_task
-    await play_sound_task
+    threads["send_packets_thread"] = threading.Thread(target=send_packets, args=(client,), daemon=True)
+    threads["recieve_packets_thread"] = threading.Thread(target=recieve_packets, args=(client, sound_queue), daemon=True)
+    threads["play_sound_thread"] = threading.Thread(target=play_sound_queue, args=(client, sound_queue), daemon=True)
+
+    for thread_name in threads:
+        threads[thread_name].start()
+
+    for thread_name in threads:
+        threads[thread_name].join()
 
 if __name__ == "__main__":
     configure_logging()
