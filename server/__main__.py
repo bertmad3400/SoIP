@@ -66,22 +66,28 @@ class Server:
                 self.send_packet_to(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
 
-    async def process_audio(self):
+    def process_audio(self):
         while True:
-            logging.info("Processing audio")
             for client in self.clients:
                 audio_part = client.audio_parts.get()
-                for other_client in clients:
-                    if client == other_client: continue
-                    client.socker.sendto(Packet(PacketType.SOUND, audio_part).serialize(), client.add)
+                if audio_part:
+                    logging.info("Processing audio")
+                    for other_client in clients:
+                        if client == other_client: continue
+                        client.socker.sendto(Packet(PacketType.SOUND, audio_part).serialize(), client.add)
 
-    async def listen(self):
+    def listen(self):
         with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
-            audio_task = asyncio.create_task(self.process_audio())
             server.serve_forever()
-            await audio_task
+
+    async def run(self):
+        await asyncio.gather(
+            asyncio.to_thread(self.process_audio),
+            asyncio.to_thread(self.listen)
+        )
+
 
 if __name__ == "__main__":
     configure_logging()
     server = Server(('127.0.0.1', 3333))
-    asyncio.run(server.listen())
+    asyncio.run(server.run())
