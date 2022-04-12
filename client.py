@@ -161,12 +161,42 @@ def recieve_packets(client, sound_queue):
                 case PacketType.SOUND:
                     sound_queue.put_nowait((packet.body.content["id"], packet.body.content["sound_data"]))
 
-def play_sound_queue(client, sound_queue):
-    while True:
-        if not sound_queue.empty():
-            logging.info("Playing new sound.")
-            client.play_sound(sound_queue.get_nowait()[1])
+class AudioSupplier:
+    def __init__(self, queue):
+        self.queue = queue
+        self.current_fragment = None
+        self.current_fragment_index = 0
 
+    def _get_empty_frames(frame_count):
+        return [0] * frame_count
+
+    def get_frames(self, frame_count):
+        if frame_count == 0:
+            return []
+        if self.current_fragment == None:
+            if self.queue.empty():
+                return AudioSupplier._get_empty_frames(frame_count)
+            else:
+                current_fragment = self.queue.get_nowait()[1]
+                current_fragment_index = 0
+        remainding_frames_in_fragment = len(current_fragment) - current_fragment_index
+        if remainding_frames_in_fragment == 0:
+            current_fragment = None
+            return self.get_frames(frame_count)
+
+        outdata = []
+        frames_to_write_from_current_fragment = min(frame_count, remainding_frames_in_fragment)
+        outdata.extend(current_fragment[current_fragment_index:current_fragment_index+frames_to_write_from_current_fragment])
+        current_fragment_index += frames_to_write_from_current_fragment
+        outdata.extend(self.get_frames())
+
+def output_sound(client, sound_queue):
+    supplier = AudioSupplier(sound_queue)
+    def callback(outdata, frame_count, time_info, status):
+        outdata = supplier.get_frames(frame_count)
+    with sd.OutputStream(samplerate=client.SAMPLE_RATE, channels=client.CHANNELS, dtype=client.WORD_TYPE, callback=callback):
+        while True: sleep(10)
+    os._exit(1)
 
 def main():
     client = Client("127.0.0.1", 3333, "Hest")
@@ -180,7 +210,7 @@ def main():
 
     threads["send_packets_thread"] = threading.Thread(target=send_packets, args=(client,), daemon=True)
     threads["recieve_packets_thread"] = threading.Thread(target=recieve_packets, args=(client, sound_queue), daemon=True)
-    threads["play_sound_thread"] = threading.Thread(target=play_sound_queue, args=(client, sound_queue), daemon=True)
+    threads["play_sound_thread"] = threading.Thread(target=output_sound, args=(client, sound_queue), daemon=True)
 
     for thread_name in threads:
         threads[thread_name].start()
