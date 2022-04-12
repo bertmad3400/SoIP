@@ -1,5 +1,5 @@
 from common.packet import PacketType, Packet
-from common.options import ProtocolOptions
+from common.options import ProtocolOptions, configure_logging
 
 import sounddevice as sd
 import numpy as np
@@ -7,7 +7,6 @@ import asyncio
 
 import json
 import logging
-logging.basicConfig(level=logging.DEBUG)
 
 import sys
 import socket
@@ -185,6 +184,7 @@ async def main():
     await play_sound_task
 
 if __name__ == "__main__":
+    configure_logging()
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

@@ -8,7 +8,7 @@ import logging
 
 from server.options import SoundOptions
 from common.packet import Packet, PacketType
-from common.options import ProtocolOptions
+from common.options import ProtocolOptions, configure_logging
 
 class ConnectedClient:
     def __init__(self, display_name, socket, address):
@@ -83,5 +83,6 @@ class Server:
             await audio_task
 
 if __name__ == "__main__":
+    configure_logging()
     server = Server(('127.0.0.1', 3333))
     asyncio.run(server.listen())
