@@ -35,12 +35,10 @@ class Server:
     def __init__(self, listen_address):
         self.listen_address = listen_address
 
-        print(SoundOptions.SAMPLE_RATE)
-
         self.clients = {}
 
     def send_packet(self, client: ConnectedClient, packet: Packet):
-        logging.info("Sending packet ({packet.packet_type}) to {client.address}")
+        logging.info(f"Sending packet ({packet.packet_type}) to {client.address}")
         client.socket.sendto(packet.serialize(), client.address)
 
     def handle_packet(self, in_packet, socket, client_address):

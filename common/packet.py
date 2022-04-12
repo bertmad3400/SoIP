@@ -19,10 +19,12 @@ class Body():
     def serialize(self):
         if self.packet_type in {PacketType.HANDSHAKE, PacketType.STATUS, PacketType.DISCONNECT}:
             return bson.dumps(self.content)
-        elif packet_type == PacketType.SOUND:
+        elif self.packet_type == PacketType.SOUND:
             np_bytes = BytesIO()
-            np.save(np_bytes, self.content, allow_pickle=True)
-            return np_bytes.getValue()
+            np.save(np_bytes, self.content["sound_data"], allow_pickle=True)
+            raw_content = bytearray(self.content["id"].to_bytes(length=4, byteorder="little"))
+            raw_content.extend(bytearray(np_bytes.getvalue()))
+            return raw_content
 
     def deserialize(raw_content: bytearray, packet_type):
         if packet_type in {PacketType.HANDSHAKE, PacketType.STATUS, PacketType.DISCONNECT}:

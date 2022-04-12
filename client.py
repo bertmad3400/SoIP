@@ -62,9 +62,10 @@ class Client:
         self.buffer = np.empty((self.BUFFER_SIZE, self.CHANNELS), dtype=self.WORD_TYPE)
 
     def send_packet(self, packet):
-        logging.debug(f"Sending packet of type {packet.packet_type.name}")
+        raw_packet = packet.serialize()
+        logging.debug(f"Sending packet of type {packet.packet_type.name} and size {len(raw_packet)} bytes")
         self.last_sent_time = datetime.now()
-        self.sock.sendto(packet.serialize(), self.server_address)
+        self.sock.sendto(raw_packet, self.server_address)
 
     def recieve_packet(self):
         try:
@@ -137,11 +138,11 @@ async def send_packets(client):
         else:
             await client.record_buffer()
             client.packet_id += 1
-            client.send_pack(Packet(PacketType.SOUND, client.buffer, packet_id=client.packet_id))
+            client.send_packet(Packet(PacketType.SOUND, client.buffer, packet_id=client.packet_id))
 
 async def recieve_packets(client, sound_queue):
     while True:
-        if (last_recieved_time - datetime.now()) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
+        if (client.last_recieved_time - datetime.now()) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
             raise Timeout
 
         packet = client.recieve_packet()
