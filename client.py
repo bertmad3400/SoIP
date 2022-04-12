@@ -53,6 +53,7 @@ class Client:
 
             if handshake and handshake.packet_type == PacketType.HANDSHAKE:
                 logging.info(f"Recieved handshake, with following options: {json.dumps(handshake.body.content)}.")
+                break
             elif handshake:
                 raise WrongPacket("Recieved packet, but it wasn't a handshake.")
 
@@ -169,13 +170,7 @@ async def main():
     client = Client("127.0.0.1", 3333, "Hest")
     logging.info("Created client.")
 
-    while True:
-        try:
-            client.handshake()
-            break
-        except Exception as e:
-            logging.error(f'Encountered following error when attempting handshake: "{e}". Trying again')
-            sleep(1)
+    client.handshake()
 
     sound_queue = Queue()
 
