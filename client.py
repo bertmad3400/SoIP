@@ -68,11 +68,14 @@ class Client:
         self.sock.sendto(packet.serialize(), self.server_address)
 
     def recieve_packet(self):
-        raw_data = bytearray(self.sock.recv(65536))
-
-        if raw_data:
+        try:
+            raw_data = bytearray(self.sock.recv(65536, socket.MSG_DONTWAIT))
             last_recieved_time = datetime.now()
-            return Packet.deserialize(raw_data)
+            packet = Packet.deserialize(raw_data)
+            logging.debug(f"Recieved packet of type {packet.packet_type.name}")
+            return packet
+        except BlockingIOError:
+            return None
 
     async def record_buffer(self):
         logging.debug("Recording to buffer...")
