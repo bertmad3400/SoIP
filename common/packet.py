@@ -42,8 +42,10 @@ class Packet():
         #self.checksum = checksum
         if isinstance(body, Body):
             self.body = body
+        elif packet_type == PacketType.SOUND:
+            body = {"id" : packet_id, "sound_data": body}
+            self.body = Body(body, packet_type)
         else:
-            body = {"id" : packet_id, sound_data: body}
             self.body = Body(body, packet_type)
 
     # Serialize into datagram body
