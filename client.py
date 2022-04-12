@@ -43,23 +43,23 @@ class Client:
 
         handshake = self.recieve_packet()
 
-        self.SAMPLE_RATE = handshake.body["sample_rate"]
-        self.CHANNELS = handshake.body["channels"]
-        self.WORD_TYPE = handshake.body["word_type"]
-        self.BUFFER_SIZE = handshake.body["buffer_size"]
+        self.SAMPLE_RATE = handshake.body.content["sample_rate"]
+        self.CHANNELS = handshake.body.content["channels"]
+        self.WORD_TYPE = handshake.body.content["word_type"]
+        self.BUFFER_SIZE = handshake.body.content["buffer_size"]
 
         self.buffer = np.empty((self.BUFFER_SIZE, self.CHANNELS), dtype=self.WORD_TYPE)
 
-    def send_packet(packet):
+    def send_packet(self, packet):
         self.last_sent_time = datetime.now()
-        self.sock.sendto(packet.seralize(), self.server_address)
+        self.sock.sendto(packet.serialize(), self.server_address)
 
-    def recieve_packet():
-        raw_data = sock.recv(65536)
+    def recieve_packet(self):
+        raw_data = bytearray(self.sock.recv(65536))
 
         if raw_data:
-            last_recieved_time = datetime.time()
-            return Packet.unserialize(raw_data)
+            last_recieved_time = datetime.now()
+            return Packet.deserialize(raw_data)
 
     async def record_buffer(self):
         loop = asyncio.get_event_loop()
@@ -120,7 +120,7 @@ async def send_packets(client):
             client.packet_id += 1
             client.send_pack(Packet(PacketType.SOUND, client.buffer, packet_id=client.packet_id))
 
-async def recieve_packets(client):
+async def recieve_packets(client, sound_queue):
     while True:
         if (last_recieved_time - datetime.now()) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
             raise Timeout
@@ -130,11 +130,11 @@ async def recieve_packets(client):
         if packet:
             match packet.packet_type:
                 case PacketType.STATUS:
-                    client.connected_users = packet.body["connected_users"]
+                    client.connected_users = packet.body.content["connected_users"]
                 case PacketType.DISCONNECT:
-                    raise Disconnect(packet.body["disconnect_reason"])
+                    raise Disconnect(packet.body.content["disconnect_reason"])
                 case PacketType.SOUND:
-                    sound_queue.put_nowait((packet.body["id"], packet.body["sound_data"]))
+                    sound_queue.put_nowait((packet.body.content["id"], packet.body.content["sound_data"]))
 
 async def play_sound_queue(client, sound_queue):
     while True:
@@ -143,7 +143,7 @@ async def play_sound_queue(client, sound_queue):
 
 
 async def main():
-    client = Client("127.0.0.1", 3333)
+    client = Client("127.0.0.1", 3333, "Hest")
 
     while True:
         try:
