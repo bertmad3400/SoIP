@@ -17,15 +17,12 @@ class ConnectedClient:
         self.socket = socket
         self.address = address
 
-    def update_last_packet(last_packet=None):
+    def update_last_packet(self, last_packet=None):
         if last_packet == None:
             last_packet = datetime.now(timezone.utc)
         self.last_packet = last_packet
 
 class ServerRequestHandler(DatagramRequestHandler):
-    def __init__(self, server):
-        self.server = server # this refers to the other classes thing (pass by reference)
-
     def handle(self):
         data = self.request[0]
         socket = self.request[1]
@@ -40,22 +37,23 @@ class Server:
 
         self.clients = {}
 
-        self.request_handler = ServerRequestHandler(self)
 
     def handle_packet(self, in_packet, socket, client_address):
-        client = clients.get(client_address)
+        client = self.clients.get(client_address)
         match in_packet.packet_type:
             case PacketType.HANDSHAKE:
                 if not client:
-                    client = ConnectedClient(in_packet.body['display_name'], socket, client_address)
-                    clients[client_address] = client
-                out_packet = Packet(PacketType.HANDSHAKE, dict(SoundOptions))
+                    client = ConnectedClient(in_packet.body.content['display_name'], socket, client_address)
+                    self.clients[client_address] = client
+
+                print(SoundOptions)
+                out_packet = Packet(PacketType.HANDSHAKE, SoundOptions.as_dict())
                 socket.sendto(out_packet.serialize(), client_address)
             case PacketType.HEARTBEAT:
                 pass # No need to do anything.
             case PacketType.STATUS:
                 status = {
-                    'connected_users': [c.display_name for c in clients]
+                    'connected_users': [c.display_name for c in self.clients]
                 }
                 out_packet = Packet(PacketType.STATUS, status)
                 socket.sendto(out_packet.serialize(), client_address)
@@ -75,7 +73,7 @@ class Server:
                     client.socker.sendto(Packet(PacketType.SOUND, audio_part).serialize(), client.add)
 
     async def listen(self):
-        with ThreadingUDPServer(self.listen_address, self.request_handler) as server:
+        with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
             audio_task = asyncio.create_task(self.process_audio())
             server.serve_forever()
             await audio_task
