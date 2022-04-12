@@ -1,8 +1,8 @@
 class SoundOptions:
-    SAMPLE_RATE = 44100
-    CHANNELS = 2
+    SAMPLE_RATE = 8000
+    CHANNELS = 1
     WORD_TYPE = "float32"
-    BUFFER_SIZE = 150_000
+    BUFFER_SIZE = 1024
 
     def as_dict():
         return {
