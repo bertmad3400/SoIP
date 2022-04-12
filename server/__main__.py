@@ -69,10 +69,10 @@ class Server:
     def process_audio(self):
         while True:
             for client in self.clients:
-                audio_part = client.audio_parts.get()
+                audio_part = client.audio_parts.get_nowait()
                 if audio_part:
-                    logging.info("Processing audio")
-                    for other_client in clients:
+                    logging.info(f"Processing audio for {client.display_name} at {client.address}")
+                    for other_client in self.clients:
                         if client == other_client: continue
                         client.socker.sendto(Packet(PacketType.SOUND, audio_part).serialize(), client.add)
 
