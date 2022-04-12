@@ -39,32 +39,32 @@ class Server:
 
         self.clients = {}
 
-    def send_packet(client: ConnectedClient, packet: Packet):
+    def send_packet(self, client: ConnectedClient, packet: Packet):
         logging.info("Sending packet ({packet.packet_type}) to {client.address}")
         client.socket.sendto(packet.serialize(), client.address)
 
     def handle_packet(self, in_packet, socket, client_address):
         client = self.clients.get(client_address)
-        logging.info(f"Handling packet with type {in_packet.packet_type} from client {client_address} with display name {client.display_name}")
+        logging.info(f"Handling packet with type {in_packet.packet_type} from client {client_address}.")
         match in_packet.packet_type:
             case PacketType.HANDSHAKE:
                 if not client:
-                    logging.info("New user")
+                    logging.info(f"New user with display name: {in_packet.body.content['display_name']}")
                     client = ConnectedClient(in_packet.body.content['display_name'], socket, client_address)
                     self.clients[client_address] = client
                 print(SoundOptions)
-                send_packet(client, Packet(PacketType.HANDSHAKE, SoundOptions.as_dict()))
+                self.send_packet(client, Packet(PacketType.HANDSHAKE, SoundOptions.as_dict()))
             case PacketType.HEARTBEAT:
                 pass # No need to do anything.
             case PacketType.STATUS:
                 status = {
                     'connected_users': [c.display_name for c in self.clients]
                 }
-                send_packet(client, Packet(PacketType.STATUS, status))
+                self.send_packet(client, Packet(PacketType.STATUS, status))
             case PacketType.SOUND:
                 client.audio_parts.put(in_packet.body.content)
             case PacketType.DISCONNECT:
-                send_packet_to(client, Packet(PacketType.DISCONNECT, None))
+                self.send_packet_to(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
 
     async def process_audio(self):
