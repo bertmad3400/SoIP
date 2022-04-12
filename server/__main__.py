@@ -11,7 +11,7 @@ from server.options import SoundOptions
 from common.packet import Packet, PacketType
 from common.options import ProtocolOptions, configure_logging
 
-import sys
+import os
 
 class ConnectedClient:
     def __init__(self, display_name, socket, address):
@@ -109,4 +109,5 @@ if __name__ == "__main__":
     try:
         server.run()
     except KeyboardInterrupt:
-        sys.exit("\nInterrupted by user.")
+        logging.critical("Interrupted by user.")
+        os._exit(1)

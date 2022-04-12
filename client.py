@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 
+import os
 import sys
 import socket
 
@@ -186,8 +187,11 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        sys.exit('\nInterrupted by user')
+        logging.critical("Interrupted by user")
+        os._exit(1)
     except Disconnect as reason:
-        sys.exit(f"\nServer disconnected. Reason: {reason}")
+        logging.critical(f"Server disconnected. Reason: {reason}")
+        os._exit(1)
     except Timeout:
-        sys.exit("\nConnection to server timed out.")
+        logging.critical("Connection to server timed out.")
+        os._exit(1)
