@@ -4,6 +4,7 @@ from socketserver import DatagramRequestHandler, ThreadingUDPServer
 from datetime import datetime, timezone
 from queue import Queue
 import asyncio
+import logging
 
 from server.options import SoundOptions
 from common.packet import Packet, PacketType
@@ -20,6 +21,7 @@ class ConnectedClient:
     def update_last_packet(self, last_packet=None):
         if last_packet == None:
             last_packet = datetime.now(timezone.utc)
+        logging.debug(f"Packet received at {last_packet}")
         self.last_packet = last_packet
 
 class ServerRequestHandler(DatagramRequestHandler):
@@ -37,35 +39,37 @@ class Server:
 
         self.clients = {}
 
+    def send_packet(client: ConnectedClient, packet: Packet):
+        logging.info("Sending packet ({packet.packet_type}) to {client.address}")
+        client.socket.sendto(packet.serialize(), client.address)
 
     def handle_packet(self, in_packet, socket, client_address):
         client = self.clients.get(client_address)
+        logging.info(f"Handling packet with type {in_packet.packet_type} from client {client_address} with display name {client.display_name}")
         match in_packet.packet_type:
             case PacketType.HANDSHAKE:
                 if not client:
+                    logging.info("New user")
                     client = ConnectedClient(in_packet.body.content['display_name'], socket, client_address)
                     self.clients[client_address] = client
-
                 print(SoundOptions)
-                out_packet = Packet(PacketType.HANDSHAKE, SoundOptions.as_dict())
-                socket.sendto(out_packet.serialize(), client_address)
+                send_packet(client, Packet(PacketType.HANDSHAKE, SoundOptions.as_dict()))
             case PacketType.HEARTBEAT:
                 pass # No need to do anything.
             case PacketType.STATUS:
                 status = {
                     'connected_users': [c.display_name for c in self.clients]
                 }
-                out_packet = Packet(PacketType.STATUS, status)
-                socket.sendto(out_packet.serialize(), client_address)
+                send_packet(client, Packet(PacketType.STATUS, status))
             case PacketType.SOUND:
                 client.audio_parts.put(in_packet.body.content)
             case PacketType.DISCONNECT:
-                out_packet = Packet(PacketType.DISCONNECT, None)
-                socket.sendto(out_packet.serialize(), client_address)
+                send_packet_to(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
 
     async def process_audio(self):
         while True:
+            logging.info("Processing audio")
             for client in self.clients:
                 audio_part = client.audio_parts.get()
                 for other_client in clients:
