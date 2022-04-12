@@ -26,9 +26,10 @@ class ConnectedClient:
 
 class ServerRequestHandler(DatagramRequestHandler):
     def handle(self):
-        data = self.request[0]
+        raw_data = bytearray(self.request[0])
         socket = self.request[1]
-        in_packet = Packet.deserialize(bytearray(data))
+        logging.debug(f"Converting packet with size of {len(raw_data)} bytes")
+        in_packet = Packet.deserialize(raw_data)
         server.handle_packet(in_packet, socket, self.client_address)       
 
 class Server:
