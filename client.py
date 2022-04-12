@@ -44,14 +44,17 @@ class Client:
         logging.info("Sending handshake")
         self.send_packet(Packet(PacketType.HANDSHAKE, {"display_name" : self.display_name}))
 
-        sleep(1)
+        logging.debug("Waiting on handshake response...")
+        self.last_recieved_time = datetime.now()
+        while True:
+            if (datetime.now() - self.last_recieved_time) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
+                raise Timeout("Timed out waiting for handshake response.")
+            handshake = self.recieve_packet()
 
-        handshake = self.recieve_packet()
-
-        if handshake and handshake.packet_type == PacketType.HANDSHAKE:
-            logging.info(f"Recieved handshake, with following options: {json.dumps(handshake.body.content)}")
-        else:
-            raise WrongPacket("Didn't recieve handshake")
+            if handshake and handshake.packet_type == PacketType.HANDSHAKE:
+                logging.info(f"Recieved handshake, with following options: {json.dumps(handshake.body.content)}.")
+            elif handshake:
+                raise WrongPacket("Recieved packet, but it wasn't a handshake.")
 
 
         self.SAMPLE_RATE = handshake.body.content["sample_rate"]
@@ -142,7 +145,7 @@ async def send_packets(client):
 
 async def recieve_packets(client, sound_queue):
     while True:
-        if (client.last_recieved_time - datetime.now()) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
+        if (datetime.now() - client.last_recieved_time) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
             raise Timeout
 
         packet = client.recieve_packet()
