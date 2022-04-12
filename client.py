@@ -88,7 +88,7 @@ class Client:
         except BlockingIOError:
             return None
 
-    async def record_buffer(self):
+    def record_buffer(self):
         logging.debug("Recording to buffer...")
         i = 0
 
@@ -111,7 +111,7 @@ class Client:
             logging.debug("Finished recording to buffer.")
 
 
-    async def play_sound(self, sound):
+    def play_sound(self, sound):
         logging.debug("Playing sound...")
         i = 0
 
