@@ -2,7 +2,7 @@ import sounddevice as sd
 import numpy as np
 from socketserver import DatagramRequestHandler, ThreadingUDPServer
 from datetime import datetime, timezone
-from queue import Queue
+from queue import PriorityQueue
 import asyncio
 import threading
 import logging
@@ -17,9 +17,10 @@ class ConnectedClient:
     def __init__(self, display_name, socket, address):
         self.display_name = display_name
         self.last_packet = datetime.now(timezone.utc)
-        self.audio_parts = Queue()
+        self.audio_parts = PriorityQueue()
         self.socket = socket
         self.address = address
+        self.packet_counts = 0
 
     def update_last_packet(self, last_packet=None):
         if last_packet == None:
@@ -67,7 +68,8 @@ class Server:
                 }
                 self.send_packet(client, Packet(PacketType.STATUS, status))
             case PacketType.SOUND:
-                client.audio_parts.put(in_packet)
+                client.packet_count += 1
+                client.audio_parts.put((client.packet_count, in_packet))
             case PacketType.DISCONNECT:
                 self.send_packet_to(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
@@ -80,7 +82,7 @@ class Server:
                 client = self.clients[client_address]
                 if not client.audio_parts.empty():
                     logging.info(f"Audio part count: {client.audio_parts.qsize()}")
-                    audio_packet = client.audio_parts.get_nowait()
+                    audio_packet = client.audio_parts.get_nowait()[1]
                     logging.info(f"Processing audio for {client.display_name} at {client.address}")
                     for other_client in self.clients:
                         if client == other_client: continue

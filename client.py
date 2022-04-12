@@ -16,7 +16,7 @@ import socket
 from time import sleep
 from datetime import datetime, timedelta
 
-from queue import Queue
+from queue import PriorityQueue
 
 class Disconnect(Exception):
     pass
@@ -173,7 +173,7 @@ def main():
 
     client.handshake()
 
-    sound_queue = Queue()
+    sound_queue = PriorityQueue()
 
     threads = {}
 
