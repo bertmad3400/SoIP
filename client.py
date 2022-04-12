@@ -5,7 +5,9 @@ import sounddevice as sd
 import numpy as np
 import asyncio
 
+import json
 import logging
+logging.basicConfig(level=logging.DEBUG)
 
 import sys
 import socket
@@ -40,11 +42,18 @@ class Client:
         self.packet_id = 0
 
     def handshake(self):
+        logging.info("Sending handshake")
         self.send_packet(Packet(PacketType.HANDSHAKE, {"display_name" : self.display_name}))
 
         sleep(1)
 
         handshake = self.recieve_packet()
+
+        if handshake and handshake.packet_type == PacketType.HANDSHAKE:
+            logging.info(f"Recieved handshake, with following options: {json.dumps(handshake.body.content)}")
+        else:
+            raise WrongPacket("Didn't recieve handshake")
+
 
         self.SAMPLE_RATE = handshake.body.content["sample_rate"]
         self.CHANNELS = handshake.body.content["channels"]
@@ -54,6 +63,7 @@ class Client:
         self.buffer = np.empty((self.BUFFER_SIZE, self.CHANNELS), dtype=self.WORD_TYPE)
 
     def send_packet(self, packet):
+        logging.debug(f"Sending packet of type {packet.packet_type.name}")
         self.last_sent_time = datetime.now()
         self.sock.sendto(packet.serialize(), self.server_address)
 
@@ -65,6 +75,7 @@ class Client:
             return Packet.deserialize(raw_data)
 
     async def record_buffer(self):
+        logging.debug("Recording to buffer...")
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         i = 0
@@ -87,9 +98,11 @@ class Client:
 
         with stream:
             await event.wait()
+            logging.debug("Finished recording to buffer.")
 
 
     async def play_sound(self, sound):
+        logging.debug("Playing sound...")
         loop = asyncio.get_event_loop()
         event = asyncio.Event()
         i = 0
@@ -112,6 +125,7 @@ class Client:
 
         with stream:
             await event.wait()
+            logging.debug("Finished playing sound.")
 
 async def send_packets(client):
     while True:
@@ -147,6 +161,7 @@ async def play_sound_queue(client, sound_queue):
 
 async def main():
     client = Client("127.0.0.1", 3333, "Hest")
+    logging.info("Created client.")
 
     while True:
         try:
