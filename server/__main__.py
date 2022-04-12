@@ -43,22 +43,21 @@ class Server:
         self.client_lock = threading.Lock()
 
     def send_packet(self, client: ConnectedClient, packet: Packet):
-        logging.info(f"Sending packet ({packet.packet_type}) to {client.address}")
+        logging.info(f"Sending packet ({packet.packet_type.name}) to {client.address}")
         client.socket.sendto(packet.serialize(), client.address)
 
     def handle_packet(self, in_packet, socket, client_address):
         self.client_lock.acquire()
         client = self.clients.get(client_address)
-        logging.info(f"Handling packet with type {in_packet.packet_type} from client {client_address}.")
+        logging.info(f"Handling packet with type {in_packet.packet_type.name} from client {client_address}.")
         match in_packet.packet_type:
             case PacketType.HANDSHAKE:
                 if not client:
                     logging.info(f"New user with display name: {in_packet.body.content['display_name']}")
                     client = ConnectedClient(in_packet.body.content['display_name'], socket, client_address)
                     self.clients[client_address] = client
-                logging.info(f"Handshake from client {client}")
-                logging.info(f"Current clients {self.clients}")
-                print(SoundOptions)
+                logging.info(f"Handshake from client {client.address}")
+                logging.info(f"Current clients {list(self.clients.keys())}")
                 self.send_packet(client, Packet(PacketType.HANDSHAKE, SoundOptions.as_dict()))
             case PacketType.HEARTBEAT:
                 pass # No need to do anything.
@@ -68,7 +67,7 @@ class Server:
                 }
                 self.send_packet(client, Packet(PacketType.STATUS, status))
             case PacketType.SOUND:
-                client.audio_parts.put(in_packet.body.content)
+                client.audio_parts.put(in_packet)
             case PacketType.DISCONNECT:
                 self.send_packet_to(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
@@ -79,13 +78,13 @@ class Server:
             self.client_lock.acquire()
             for client_address in self.clients:
                 client = self.clients[client_address]
-                logging.info(f"Audio part count: {client.audio_parts.qsize()}")
                 if not client.audio_parts.empty():
-                    audio_part = client.audio_parts.get_nowait()
+                    logging.info(f"Audio part count: {client.audio_parts.qsize()}")
+                    audio_packet = client.audio_parts.get_nowait()
                     logging.info(f"Processing audio for {client.display_name} at {client.address}")
                     for other_client in self.clients:
                         if client == other_client: continue
-                        client.socket.sendto(Packet(PacketType.SOUND, { "id" : 0, "sound_data": audio_part }).serialize(), client.add)
+                        self.send_packet(client, audio_packet)
             self.client_lock.release()
 
     def listen(self):
