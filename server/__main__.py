@@ -11,6 +11,8 @@ from server.options import SoundOptions
 from common.packet import Packet, PacketType
 from common.options import ProtocolOptions, configure_logging
 
+import sys
+
 class ConnectedClient:
     def __init__(self, display_name, socket, address):
         self.display_name = display_name
@@ -97,4 +99,7 @@ class Server:
 if __name__ == "__main__":
     configure_logging()
     server = Server(('127.0.0.1', 3333))
-    server.run()
+    try:
+        server.run()
+    except KeyboardInterrupt:
+        sys.exit("\nInterrupted by user.")
