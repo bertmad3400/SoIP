@@ -1,4 +1,3 @@
-import sounddevice as sd
 import numpy as np
 from socketserver import DatagramRequestHandler, ThreadingUDPServer
 from datetime import datetime, timezone
