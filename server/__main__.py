@@ -20,7 +20,6 @@ class ConnectedClient:
         self.audio_parts = PriorityQueue()
         self.socket = socket
         self.address = address
-        self.packet_count = 0
 
     def update_last_packet(self, last_packet=None):
         if last_packet == None:
@@ -68,26 +67,42 @@ class Server:
                 }
                 self.send_packet(client, Packet(PacketType.STATUS, status))
             case PacketType.SOUND:
-                client.packet_count += 1
-                client.audio_parts.put((client.packet_count, in_packet))
+                client.audio_parts.put((in_packet.body.content["id"], in_packet.body.content["sound_data"]))
             case PacketType.DISCONNECT:
-                self.send_packet_to(client, Packet(PacketType.DISCONNECT, None))
+                self.send_packet(client, Packet(PacketType.DISCONNECT, None))
         client.update_last_packet()
         self.client_lock.release()
 
     def process_audio(self):
+        audioID = 0
+
         while True:
             self.client_lock.acquire()
+
+            audio_fragments = {}
+
             for client_address in self.clients:
                 client = self.clients[client_address]
                 if not client.audio_parts.empty():
-                    logging.info(f"Audio part count: {client.audio_parts.qsize()}")
-                    audio_packet = client.audio_parts.get_nowait()[1]
                     logging.info(f"Processing audio for {client.display_name} at {client.address}")
-                    for other_client in self.clients:
-                        if client == other_client: continue
-                        self.send_packet(client, audio_packet)
+                    audio_fragments[client_address] = client.audio_parts.get_nowait()[1]
+
             self.client_lock.release()
+
+            if audio_fragments:
+                audioID += 1
+
+                for client_address in audio_fragments:
+                    if len(audio_fragments) == 1 and client_address in audio_fragments:
+                        continue
+
+                    current_client_fragments = [fragment * (2/3) for address, fragment in audio_fragments.items() if address != client_address]
+                    current_client_sound = sum(current_client_fragments)
+
+                    audio_packet = Packet(PacketType.SOUND, current_client_sound, audioID)
+                    print("ho")
+                    self.send_packet(self.clients[client_address], audio_packet)
+
 
     def listen(self):
         with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
