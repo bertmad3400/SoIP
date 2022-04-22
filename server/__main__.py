@@ -1,6 +1,6 @@
 import numpy as np
 from socketserver import DatagramRequestHandler, ThreadingUDPServer
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from queue import PriorityQueue
 import asyncio
 import threading
@@ -11,6 +11,8 @@ from common.packet import Packet, PacketType
 from common.options import ProtocolOptions, configure_logging
 
 import os
+
+from time import sleep
 
 class ConnectedClient:
     def __init__(self, display_name, socket, address):
@@ -100,6 +102,21 @@ class Server:
                     audio_packet = Packet(PacketType.SOUND, current_client_sound, self.audioID)
                     self.send_packet(self.clients[client_address], audio_packet)
 
+    def maintain_client_connection(self):
+        while True:
+            self.client_lock.acquire()
+            for client_address in dict(self.clients):
+                client = self.clients[client_address]
+                if (datetime.now(timezone.utc) - client.last_packet) / timedelta(milliseconds=1) > ProtocolOptions.TIMEOUT:
+                    logging.info(f"Disconnecting user at address {client_address}")
+                    self.send_packet(client, Packet(PacketType.DISCONNECT, {"disconnect_reason" : "Inactivity"}))
+                    self.clients.pop(client_address)
+                else:
+                    logging.debug(f"Sending Heartbeat to client at address {client_address}.")
+                    self.send_packet(client, Packet(PacketType.HEARTBEAT, None))
+            self.client_lock.release()
+            sleep(0.5)
+
 
     def listen(self):
         with ThreadingUDPServer(self.listen_address, ServerRequestHandler) as server:
@@ -109,7 +126,8 @@ class Server:
         try:
             threads = [
                     threading.Thread(target=self.listen, daemon=True),
-                    threading.Thread(target=self.process_audio, daemon=True)
+                    threading.Thread(target=self.process_audio, daemon=True),
+                    threading.Thread(target=self.maintain_client_connection, daemon=True)
                 ]
             for thread in threads:
                 thread.start()
