@@ -38,6 +38,7 @@ class Server:
     def __init__(self, listen_address):
         self.listen_address = listen_address
 
+        self.audioID = 0
         self.clients = {}
         self.client_lock = threading.Lock()
 
@@ -73,8 +74,6 @@ class Server:
         self.client_lock.release()
 
     def process_audio(self):
-        audioID = 0
-
         while True:
             self.client_lock.acquire()
 
@@ -89,7 +88,7 @@ class Server:
             self.client_lock.release()
 
             if audio_fragments:
-                audioID += 1
+                self.audioID += 1
 
                 for client_address in audio_fragments:
                     if len(audio_fragments) == 1 and client_address in audio_fragments:
@@ -98,8 +97,7 @@ class Server:
                     current_client_fragments = [fragment * (2/3) for address, fragment in audio_fragments.items() if address != client_address]
                     current_client_sound = sum(current_client_fragments)
 
-                    audio_packet = Packet(PacketType.SOUND, current_client_sound, audioID)
-                    print("ho")
+                    audio_packet = Packet(PacketType.SOUND, current_client_sound, self.audioID)
                     self.send_packet(self.clients[client_address], audio_packet)
 
 
