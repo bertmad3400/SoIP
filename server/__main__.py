@@ -106,21 +106,24 @@ class Server:
             server.serve_forever()
 
     def run(self):
-        threads = [
-                threading.Thread(target=self.listen, daemon=True),
-                threading.Thread(target=self.process_audio, daemon=True)
-            ]
-        for thread in threads:
-            thread.start()
+        try:
+            threads = [
+                    threading.Thread(target=self.listen, daemon=True),
+                    threading.Thread(target=self.process_audio, daemon=True)
+                ]
+            for thread in threads:
+                thread.start()
 
-        for thread in threads: thread.join()
+            for thread in threads: thread.join()
+        except KeyboardInterrupt:
+            logging.critical("Interrupted by user, disconnecting clients, and shutting server down.")
+            for client_address in self.clients:
+                client = self.clients[client_address]
+                self.send_packet(client, Packet(PacketType.HEARTBEAT, {"disconnect_reason" : "Inactivity"}))
+            os._exit(1)
 
 
 if __name__ == "__main__":
     configure_logging()
     server = Server(('127.0.0.1', 3333))
-    try:
-        server.run()
-    except KeyboardInterrupt:
-        logging.critical("Interrupted by user.")
-        os._exit(1)
+    server.run()
