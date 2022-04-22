@@ -156,7 +156,7 @@ def handle_sound(client, input_sound_queue, output_sound_queue):
     os._exit(1)
 
 def main():
-    name = "Hest"
+    name = "Anonym"
     if len(sys.argv) > 2:
         name = sys.argv[1]
     server_address = "127.0.0.1"
