@@ -156,7 +156,13 @@ def handle_sound(client, input_sound_queue, output_sound_queue):
     os._exit(1)
 
 def main():
-    client = Client("127.0.0.1", 3333, "Hest")
+    name = "Hest"
+    if len(sys.argv) > 2:
+        name = sys.argv[1]
+    server_address = "127.0.0.1"
+    if len(sys.argv) > 3:
+        server_address = sys.argv[2]
+    client = Client(server_address, 3333, name)
     logging.info("Created client.")
 
     client.handshake()
