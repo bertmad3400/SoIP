@@ -81,7 +81,7 @@ class Client:
                 return None
 
             logging.debug(f"Recieved packet of size {len(raw_data)} bytes")
-            last_recieved_time = datetime.now()
+            self.last_recieved_time = datetime.now()
             packet = Packet.deserialize(raw_data)
             logging.debug(f"Recieved packet of type {packet.packet_type.name}")
             return packet
@@ -179,7 +179,7 @@ def main():
 if __name__ == "__main__":
     configure_logging()
     try:
-        asyncio.run(main())
+        main()
     except KeyboardInterrupt:
         logging.critical("Interrupted by user")
         os._exit(1)
