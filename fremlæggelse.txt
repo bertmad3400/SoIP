@@ -1,0 +1,11 @@
+- Introduktion af formållet
+- Introduktion af arkitektur
+
+- Netværksspecifikation
+	- Opgbygning:
+		- Alignment
+		- BSON
+
+- Tests
+	- Personlig brugertest
+	- Logging
