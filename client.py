@@ -191,7 +191,7 @@ if __name__ == "__main__":
         os._exit(1)
     except Disconnect as reason:
         logging.critical(f"Server disconnected. Reason: {reason}")
-        os._exit(1)
+        os._exit(2)
     except Timeout:
         logging.critical("Connection to server timed out.")
-        os._exit(1)
+        os._exit(3)

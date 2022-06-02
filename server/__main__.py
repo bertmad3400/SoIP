@@ -2,7 +2,6 @@ import numpy as np
 from socketserver import DatagramRequestHandler, ThreadingUDPServer
 from datetime import datetime, timezone, timedelta
 from queue import PriorityQueue
-import asyncio
 import threading
 import logging
 
