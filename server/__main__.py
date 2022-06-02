@@ -137,7 +137,7 @@ class Server:
             logging.critical("Interrupted by user, disconnecting clients, and shutting server down.")
             for client_address in self.clients:
                 client = self.clients[client_address]
-                self.send_packet(client, Packet(PacketType.HEARTBEAT, {"disconnect_reason" : "Inactivity"}))
+                self.send_packet(client, Packet(PacketType.DISCONNECT, {"disconnect_reason" : "Inactivity"}))
             os._exit(1)
 
 
